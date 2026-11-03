@@ -1,0 +1,13 @@
+.git
+**/node_modules
+app/vendor
+app/.env
+app/storage/logs/*
+app/storage/framework/cache/*
+app/storage/framework/sessions/*
+app/storage/framework/views/*
+app/bootstrap/cache/*.php
+app/database/*.sqlite
+bench/results
+analysis
+docs

@@ -1,0 +1,142 @@
+# Стенд для порівняння PHP-FPM, RoadRunner, Swoole і FrankenPHP.
+# Код застосунку однаковий, відрізняється лише SERVER_MODE (entrypoint).
+#
+#   docker compose --profile fpm up -d --build          -> http://localhost:8081
+#   docker compose --profile roadrunner up -d --build   -> http://localhost:8082
+#   docker compose --profile swoole up -d --build       -> http://localhost:8083
+#   docker compose --profile frankenphp up -d --build   -> http://localhost:8084
+#
+# Під час вимірювань запускайте лише ОДИН режим застосунку.
+
+name: diploma
+
+x-app-env: &app-env
+  APP_NAME: "Diploma"
+  APP_ENV: production
+  APP_DEBUG: "false"
+  # Ключ лише для локального стенду. Для будь-якого публічного розгортання задайте свій APP_KEY у .env.
+  APP_KEY: ${APP_KEY:-base64:ZGlwbG9tYS1iZW5jaC1rZXktMzItYnl0ZXMtbG9uZyE=}
+  APP_URL: http://localhost
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: warning
+  DB_CONNECTION: pgsql
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_DATABASE: ${DB_DATABASE:-diploma}
+  DB_USERNAME: ${DB_USERNAME:-diploma}
+  DB_PASSWORD: ${DB_PASSWORD:-diploma}
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: sync
+  OCTANE_WORKERS: ${OCTANE_WORKERS:-2}
+  OCTANE_MAX_REQUESTS: ${OCTANE_MAX_REQUESTS:-500}
+
+# Спільне для всіх контейнерів застосунку.
+# Ліміти ресурсів (ТЗ: 1 vCPU, 512 MB) однакові для всіх режимів.
+x-app: &app
+  image: diploma-app:latest
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+    target: prod
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+  cpus: ${APP_CPUS:-1.0}
+  mem_limit: ${APP_MEM:-512m}
+  memswap_limit: ${APP_MEM:-512m}
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-diploma}
+      POSTGRES_USER: ${DB_USERNAME:-diploma}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-diploma}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    cpus: ${DB_CPUS:-1.0}
+    mem_limit: ${DB_MEM:-1g}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    cpus: ${REDIS_CPUS:-0.5}
+    mem_limit: ${REDIS_MEM:-256m}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Службовий контейнер для команд: міграції, сидер, тести.
+  #   docker compose run --rm app php artisan migrate --seed
+  app:
+    <<: *app
+    image: diploma-app:dev
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: dev
+    profiles: ["tools"]
+    restart: "no"
+    environment:
+      <<: *app-env
+      SERVER_MODE: cli
+      APP_CACHE: "false"
+
+  fpm:
+    <<: *app
+    profiles: ["fpm"]
+    environment:
+      <<: *app-env
+      SERVER_MODE: fpm
+    ports:
+      - "8081:8000"
+
+  roadrunner:
+    <<: *app
+    profiles: ["roadrunner"]
+    environment:
+      <<: *app-env
+      SERVER_MODE: roadrunner
+    ports:
+      - "8082:8000"
+
+  swoole:
+    <<: *app
+    profiles: ["swoole"]
+    environment:
+      <<: *app-env
+      SERVER_MODE: swoole
+    ports:
+      - "8083:8000"
+
+  frankenphp:
+    <<: *app
+    image: diploma-app-frankenphp:latest
+    build:
+      context: .
+      dockerfile: docker/frankenphp/Dockerfile
+    profiles: ["frankenphp"]
+    environment:
+      <<: *app-env
+      SERVER_MODE: frankenphp
+    ports:
+      - "8084:8000"
+
+volumes:
+  pgdata:

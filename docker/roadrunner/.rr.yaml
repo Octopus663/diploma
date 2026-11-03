@@ -1,0 +1,19 @@
+# Базова конфігурація RoadRunner. Octane передає адресу, кількість воркерів
+# і max-requests через параметри командного рядка, тут лише решта.
+version: "3"
+
+server:
+  command: "php artisan octane:roadrunner-worker"
+  relay: pipes
+
+http:
+  address: 0.0.0.0:8000
+  middleware: []
+  pool:
+    supervisor:
+      max_worker_memory: 128
+
+logs:
+  mode: production
+  level: warn
+  output: stderr
