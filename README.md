@@ -27,7 +27,7 @@ git clone https://github.com/Octopus663/diploma.git
 cd diploma
 
 # 1. Зібрати образи (перший раз 5–10 хвилин: компілюється Swoole)
-docker compose build app frankenphp
+docker compose build app fpm frankenphp
 
 # 2. Підняти БД і Redis та створити таблиці
 docker compose run --rm app php artisan migrate --force

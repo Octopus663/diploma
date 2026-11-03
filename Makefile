@@ -4,7 +4,7 @@ COMPOSE = docker compose
 .PHONY: build up-fpm up-rr up-swoole up-franken down migrate seed fresh test ping logs
 
 build:
-	$(COMPOSE) build app frankenphp
+	$(COMPOSE) build app fpm frankenphp
 
 up-fpm:
 	$(COMPOSE) --profile fpm up -d --build
