@@ -36,7 +36,7 @@
 | Шар | Вибір | Чому |
 |---|---|---|
 | Мова | PHP 8.4 | актуальна, підтримується Octane |
-| Фреймворк | Laravel 12 | остання стабільна LTS-подібна гілка |
+| Фреймворк | Laravel 13 | остання стабільна версія (на момент старту 13.40) |
 | Сервери додатків | Laravel Octane (RoadRunner, Swoole 5/6, FrankenPHP) | вимога ТЗ + FrankenPHP як додатковий режим |
 | БД | PostgreSQL 17 | Eloquent, складні JOIN |
 | Кеш | Redis 7 (`phpredis`) | вимога ТЗ |
@@ -104,7 +104,7 @@ diploma-octane/
 
 ### Етап 1. Каркас проєкту і Docker-стенд
 **Кроки**
-1. Створити Laravel 12 у `app/`, встановити `laravel/octane`, `spiral/roadrunner-cli`, `spiral/roadrunner-http`.
+1. Створити Laravel 13 у `app/`, встановити `laravel/octane`, `spiral/roadrunner-cli`, `spiral/roadrunner-http`.
 2. Один `docker/php/Dockerfile` (multi-stage): PHP 8.4 + розширення `pdo_pgsql`, `redis`, `opcache`, `pcntl`, `sockets`, `swoole`; бінарник `rr`.
 3. Для FrankenPHP окремий `docker/frankenphp/Dockerfile` на офіційному образі `dunglas/frankenphp` з тими самими розширеннями і тією ж мінорною версією PHP (вбудувати Swoole і FrankenPHP в один образ складно, тому це виняток з правила «один образ»; версії фіксуються в `bench/config.md`).
 4. `docker-compose.yml` з профілями `fpm`, `roadrunner`, `swoole`, `frankenphp`; сервіси `db` (PostgreSQL), `redis`; ліміти ресурсів.

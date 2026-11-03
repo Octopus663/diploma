@@ -1,0 +1,7 @@
+.env
+docker/certs/*
+!docker/certs/.gitkeep
+bench/results/*
+!bench/results/.gitkeep
+.idea/
+.vscode/
