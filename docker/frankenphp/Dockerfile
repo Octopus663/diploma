@@ -8,6 +8,14 @@ ARG PHP_VERSION=8.4
 
 FROM composer:2 AS composer
 
+# ---- assets: збірка фронтенду (Vite + Tailwind) ----
+FROM node:22-alpine AS assets
+WORKDIR /app
+COPY app/package.json app/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY app/ ./
+RUN npm run build
+
 FROM dunglas/frankenphp:${FRANKENPHP_VERSION}-php${PHP_VERSION}-bookworm
 
 COPY docker/certs/ /usr/local/share/ca-certificates/extra/
@@ -28,6 +36,7 @@ COPY app/composer.json app/composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
 
 COPY app/ ./
+COPY --from=assets /app/public/build public/build
 RUN composer dump-autoload --optimize --no-dev \
  && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
  && touch .env

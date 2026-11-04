@@ -45,6 +45,40 @@ curl http://localhost:8081/api/ping
 {"status":"ok","app":"Diploma","laravel":"13.x.x","php":"8.4.x"}
 ```
 
+### Тестові дані
+
+```bash
+# Повний обсяг (~1 хв): 5 000 контрагентів, 100 000 замовлень, ~500 000 позицій, 30 000 документів
+docker compose run --rm app php artisan migrate:fresh --seed --force
+
+# Менший обсяг для швидких перевірок
+docker compose run --rm -e SEED_SCALE=0.05 app php artisan migrate:fresh --seed --force
+```
+
+Сидер детермінований (фіксований seed `SEED_RANDOM=42`), тому дані однакові при кожному запуску.
+
+Користувачі (пароль у всіх `password`):
+
+| Email | Роль |
+|---|---|
+| `admin@diploma.test` | admin (може видаляти) |
+| `manager@diploma.test` | manager |
+| `bench01..bench20@diploma.test` | manager, для k6 |
+
+### API
+
+Токен Sanctum: `POST /api/auth/token` з `email`, `password`, далі заголовок `Authorization: Bearer <token>`.
+
+| Метод | Шлях |
+|---|---|
+| GET | `/api/ping` (публічний), `/api/me` |
+| CRUD | `/api/counterparties`, `/api/orders`, `/api/documents` |
+| GET | `/api/templates`, `/api/products` |
+
+`POST /api/documents` з `template_id` і `order_id` формує документ (дані звіту в `payload`).
+
+Перевірка всіх запущених режимів: `./scripts/smoke.sh`.
+
 Перемикання режиму (під час вимірювань завжди працює лише один):
 
 ```bash

@@ -11,3 +11,5 @@ app/database/*.sqlite
 bench/results
 analysis
 docs
+app/public/build
+app/public/hot
