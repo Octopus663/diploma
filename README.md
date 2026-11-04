@@ -77,6 +77,19 @@ docker compose run --rm -e SEED_SCALE=0.05 app php artisan migrate:fresh --seed 
 
 `POST /api/documents` з `template_id` і `order_id` формує документ (дані звіту в `payload`).
 
+### Сценарії навантаження
+
+| # | Маршрут | Що вимірює |
+|---|---|---|
+| 1 | `GET /api/ping` (без токена) | накладні витрати самого фреймворку |
+| 1а | `GET /api/me` | те саме + автентифікація Sanctum (запит до БД за токеном) |
+| 2 | `GET /api/bench/db/orders/{id}`, `GET /api/bench/db/counterparties/{id}/orders?limit=20` | Eloquent: eager loading, JOIN-и, агрегати |
+| 3 | `GET /api/bench/cache/counterparties/{id}`, `POST .../{id}/hit` | читання і запис агрегатів у Redis |
+| 4 | `GET/POST /api/bench/compute/report?rows=10000&seed=42` | генерація, агрегування, сортування і серіалізація великого масиву |
+
+Сценарії 2–4 потребують токен. Перед вимірюваннями кешу: `docker compose run --rm app php artisan bench:warm-cache`.
+Відповіді детерміновані: `./scripts/smoke.sh` перевіряє, що в усіх режимах вони однакові.
+
 Перевірка всіх запущених режимів: `./scripts/smoke.sh`.
 
 Перемикання режиму (під час вимірювань завжди працює лише один):

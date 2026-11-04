@@ -5,6 +5,9 @@ use App\Http\Controllers\Api\CounterpartyController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\TemplateController;
+use App\Http\Controllers\Bench\CacheController;
+use App\Http\Controllers\Bench\ComputeController;
+use App\Http\Controllers\Bench\DatabaseController;
 use App\Http\Controllers\Bench\PingController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,4 +28,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/templates', [TemplateController::class, 'index'])->name('api.templates.index');
     Route::get('/templates/{template}', [TemplateController::class, 'show'])->name('api.templates.show');
     Route::get('/products', [TemplateController::class, 'products'])->name('api.products.index');
+
+    // Сценарії навантаження 2–4 (потребують токен Sanctum).
+    Route::prefix('bench')->name('bench.')->group(function () {
+        Route::get('/db/orders/{order}', [DatabaseController::class, 'orderReport'])->whereNumber('order')->name('db.order');
+        Route::get('/db/counterparties/{counterparty}/orders', [DatabaseController::class, 'counterpartyOrders'])->whereNumber('counterparty')->name('db.counterparty');
+        Route::get('/cache/counterparties/{counterparty}', [CacheController::class, 'show'])->whereNumber('counterparty')->name('cache.show');
+        Route::post('/cache/counterparties/{counterparty}/hit', [CacheController::class, 'hit'])->whereNumber('counterparty')->name('cache.hit');
+        Route::match(['get', 'post'], '/compute/report', ComputeController::class)->name('compute');
+    });
 });
