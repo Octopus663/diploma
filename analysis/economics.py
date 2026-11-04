@@ -71,6 +71,18 @@ def main():
     for scenario, row in table.iterrows():
         lines.append(f"| {scenario} | " + " | ".join("—" if pd.isna(v) else f"{v:.0f}" for v in row) + " |")
 
+    present = [m for m in MODES if m in df["mode"].unique()]
+    measured = set(df[df["scenario"] == args.scenario]["mode"])
+    no_data = [m for m in present if m not in measured]
+    missing = [m for m in present if m in measured
+               and (args.scenario not in table.index or pd.isna(table.loc[args.scenario, m]))]
+    if no_data:
+        lines += ["", f"Немає вимірювань сценарію `{args.scenario}`: " + ", ".join(LABELS[m] for m in no_data) + "."]
+    if missing:
+        lines += ["", f"Не досягають порогу у сценарії `{args.scenario}` навіть на найменшому рівні VU: "
+                  + ", ".join(LABELS[m] for m in missing)
+                  + ". Для них інстанси не рахуються; зменште навантаження (`VUS_LIST`) або підвищте `--p95`."]
+
     rows = []
     for target in args.targets:
         for mode in table.columns:

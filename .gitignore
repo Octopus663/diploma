@@ -8,3 +8,4 @@ bench/results/*
 analysis/**/__pycache__/
 analysis/results/test-*/
 analysis/figures/test-*/
+analysis/figures/cloud-sample/
