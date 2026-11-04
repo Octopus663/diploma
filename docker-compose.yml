@@ -17,6 +17,7 @@ x-app-env: &app-env
   # Ключ лише для локального стенду. Для будь-якого публічного розгортання задайте свій APP_KEY у .env.
   APP_KEY: ${APP_KEY:-base64:ZGlwbG9tYS1iZW5jaC1rZXktMzItYnl0ZXMtbG9uZyE=}
   APP_URL: http://localhost
+  APP_LOCALE: uk
   LOG_CHANNEL: stderr
   LOG_LEVEL: warning
   DB_CONNECTION: pgsql
