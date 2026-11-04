@@ -1,0 +1,10 @@
+{
+  "_comment": "ПРИКЛАДОВІ ціни інстансу, найближчого до стенду (1 vCPU, ~0.5-1 GB). Перед використанням у дипломі перевірте актуальні ціни на сайтах провайдерів і вкажіть дату.",
+  "checked_at": "ПЕРЕВІРИТИ",
+  "currency": "USD",
+  "providers": [
+    {"name": "DigitalOcean Basic Droplet 1 vCPU / 512 MB", "monthly": 4.0},
+    {"name": "AWS EC2 t4g.nano (2 vCPU burst / 0.5 GB)", "monthly": 3.07},
+    {"name": "Hetzner Cloud CX22 (2 vCPU / 4 GB)", "monthly": 4.5}
+  ]
+}

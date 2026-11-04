@@ -172,6 +172,18 @@ MAX_REQUESTS=500 ./bench/leak.sh   # те саме з перезапуском �
 Демонстраційні антипатерни (`app/app/LeakDemo`) вмикаються лише змінною `BENCH_LEAK_DEMO=true`.
 Пояснення і рекомендації: [docs/memory-leaks.md](docs/memory-leaks.md).
 
+## Аналіз, графіки, економіка (етапи 7–8)
+
+```bash
+pip install -r analysis/requirements.txt
+python3 analysis/parse.py bench/results/<дата>        # зведені runs.csv і summary.csv, сторінка «Бенчмарки» в UI
+python3 analysis/plots.py analysis/results/<дата>     # PNG 300 dpi + SVG і tables.md у analysis/figures/<дата>/
+python3 analysis/economics.py analysis/results/<дата> # кількість інстансів і вартість
+```
+
+Деталі: [analysis/README.md](analysis/README.md), [docs/economics.md](docs/economics.md).
+Методика експерименту і діаграми стенду: [docs/methodology.md](docs/methodology.md).
+
 ## Моніторинг
 
 ```bash
