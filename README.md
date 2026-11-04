@@ -162,6 +162,16 @@ docker compose --profile bench run --rm -T -e TARGET=http://swoole:8000 -e TOKEN
   -e VUS=50 -e DURATION=30s k6 run database.js
 ```
 
+## Витоки пам'яті (етап 6)
+
+```bash
+./bench/leak.sh                    # усі режими, 20 000 запитів на варіант, 1 воркер
+MAX_REQUESTS=500 ./bench/leak.sh   # те саме з перезапуском воркера кожні 500 запитів
+```
+
+Демонстраційні антипатерни (`app/app/LeakDemo`) вмикаються лише змінною `BENCH_LEAK_DEMO=true`.
+Пояснення і рекомендації: [docs/memory-leaks.md](docs/memory-leaks.md).
+
 ## Моніторинг
 
 ```bash

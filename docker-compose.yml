@@ -34,6 +34,9 @@ x-app-env: &app-env
   QUEUE_CONNECTION: sync
   OCTANE_WORKERS: ${OCTANE_WORKERS:-2}
   OCTANE_MAX_REQUESTS: ${OCTANE_MAX_REQUESTS:-500}
+  # Етап 6: демонстрація витоків і службовий маршрут пам'яті (лише для експериментів).
+  BENCH_LEAK_DEMO: ${BENCH_LEAK_DEMO:-false}
+  BENCH_DEBUG: ${BENCH_DEBUG:-false}
 
 # Спільне для всіх контейнерів застосунку.
 # Ліміти ресурсів (ТЗ: 1 vCPU, 512 MB) однакові для всіх режимів.

@@ -42,6 +42,19 @@ for p in "${PORTS[@]}"; do
     results="$results cache-hit=$c"; [ "$c" = "200" ] || FAIL=1
     c=$(code "$base/login"); results="$results /login=$c"; [ "$c" = "200" ] || FAIL=1
 
+    # Ізоляція стану між запитами: поперемінні запити двох користувачів мають повертати кожному своє.
+    token2=$(curl -s --noproxy '*' --max-time 10 -H 'Accept: application/json' -X POST "$base/api/auth/token" \
+        -d "email=bench02@diploma.test" -d "password=$PASSWORD" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+    mixed=ok
+    for i in $(seq 1 10); do
+        for pair in "$token:bench01" "$token2:bench02"; do
+            got=$(curl -s --noproxy '*' --max-time 10 -H "Authorization: Bearer ${pair%%:*}" -H 'Accept: application/json' "$base/api/me" \
+                | sed -n 's/.*"email":"\([^@"]*\)@.*/\1/p')
+            [ "$got" = "${pair##*:}" ] || mixed=FAIL
+        done
+    done
+    results="$results users-isolated=$mixed"; [ "$mixed" = "ok" ] || FAIL=1
+
     for path in "${SAME_PATHS[@]}"; do
         body=$(curl -s --noproxy '*' --max-time 20 -w '\n%{http_code}' "${auth[@]}" "$base$path")
         status=${body##*$'\n'}

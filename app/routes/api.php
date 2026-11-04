@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Bench\CacheController;
 use App\Http\Controllers\Bench\ComputeController;
 use App\Http\Controllers\Bench\DatabaseController;
+use App\Http\Controllers\Bench\DebugController;
+use App\Http\Controllers\Bench\LeakDemoController;
 use App\Http\Controllers\Bench\PingController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,3 +40,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::match(['get', 'post'], '/compute/report', ComputeController::class)->name('compute');
     });
 });
+
+// Службові маршрути етапу 6 (лише за прапорцями в config/bench.php).
+if (config('bench.debug')) {
+    Route::get('/_debug/memory', [DebugController::class, 'memory'])->name('bench.debug.memory');
+}
+
+if (config('bench.leak_demo')) {
+    Route::prefix('leak')->name('leak.')->controller(LeakDemoController::class)->group(function () {
+        Route::get('/static', 'staticLeak')->name('static');
+        Route::get('/fixed/static', 'staticFixed')->name('static.fixed');
+        Route::get('/singleton', 'singletonLeak')->name('singleton');
+        Route::get('/fixed/singleton', 'singletonFixed')->name('singleton.fixed');
+        Route::get('/memo', 'memoLeak')->name('memo');
+        Route::get('/fixed/memo', 'memoFixed')->name('memo.fixed');
+    });
+}
