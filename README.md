@@ -162,6 +162,23 @@ docker compose --profile bench run --rm -T -e TARGET=http://swoole:8000 -e TOKEN
   -e VUS=50 -e DURATION=30s k6 run database.js
 ```
 
+## Моніторинг
+
+```bash
+docker compose --profile monitoring up -d
+```
+
+- Grafana: http://localhost:3000 (без входу), дашборд «Diploma: стенд Octane»: CPU, пам'ять, мережа, процеси кожного контейнера.
+- Prometheus: http://localhost:9090.
+- Метрики знімає власний легкий експортер `monitoring/exporter/exporter.py` з Docker API (те саме, що `docker stats`).
+  cAdvisor не використовується, бо не працює з containerd image store, який Docker Desktop вмикає за замовчуванням.
+
+Якщо моніторинг запущений під час `bench/run.sh`, наприкінці автоматично виконується
+`python3 bench/export_metrics.py bench/results/<дата>`: для кожного прогону з'являється `*.prom.csv` (CPU і пам'ять
+застосунку щосекунди). Без моніторингу аналіз використовує `*.stats.csv` з `docker stats`.
+
+Моніторинг займає до 1.25 CPU хоста, але не ділить ліміт з контейнером застосунку.
+
 ## Ресурси контейнерів
 
 | Контейнер | CPU | RAM | Змінні |

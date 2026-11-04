@@ -151,5 +151,53 @@ services:
       - ./bench/results:/results
     cpus: ${K6_CPUS:-2.0}
 
+  # ---- Моніторинг (профіль monitoring) ----
+  #   docker compose --profile monitoring up -d
+  #   Grafana: http://localhost:3000 (anonymous, дашборд «Diploma: стенд Octane»)
+  #   Prometheus: http://localhost:9090
+  # Експортер docker stats -> Prometheus (monitoring/exporter/exporter.py).
+  stats-exporter:
+    image: python:3.13-alpine
+    profiles: ["monitoring"]
+    command: ["python", "-u", "/app/exporter.py"]
+    environment:
+      COMPOSE_PROJECT: diploma
+    volumes:
+      - ./monitoring/exporter/exporter.py:/app/exporter.py:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    cpus: 0.25
+    mem_limit: 128m
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: ["monitoring"]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports:
+      - "9090:9090"
+    cpus: 0.5
+    mem_limit: 512m
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    profiles: ["monitoring"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/stand.json
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    cpus: 0.5
+    mem_limit: 256m
+
 volumes:
   pgdata:
+  promdata:

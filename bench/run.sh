@@ -99,14 +99,17 @@ measure() {
     mkdir -p "$dir"
     bench/lib/stats.sh "$(container_of "$mode")" "$base.stats.csv" &
     local stats_pid=$!
+    local started; started=$(date +%s)
     k6_run "$scenario.js" "$base.json" TARGET="http://$mode:8000" VUS="$vus" DURATION="$DURATION" \
         WARMUP="$RUN_WARMUP" LABEL="$mode/$scenario" || log "  k6 завершився з помилкою (пороги), результат збережено"
     kill "$stats_pid" 2>/dev/null || true
     wait "$stats_pid" 2>/dev/null || true
+    echo "$mode,$scenario,$vus,$run,$started,$(date +%s),${base#"$RESULTS"/}" >> "$RESULTS/runs.csv"
 }
 
 # ---------- підготовка ----------
 mkdir -p "$RESULTS"
+[ -f "$RESULTS/runs.csv" ] || echo "mode,scenario,vus,run,start,end,base" > "$RESULTS/runs.csv"
 log "Результати: $RESULTS"
 
 "${COMPOSE[@]}" up -d db redis >/dev/null 2>&1
@@ -183,4 +186,7 @@ done
 
 stop_apps
 log "Готово: $RESULTS"
+if curl -s --noproxy '*' -o /dev/null --max-time 2 http://localhost:9090/-/ready; then
+    python3 bench/export_metrics.py "$RESULTS" || log "Експорт з Prometheus не вдався"
+fi
 log "Далі: python3 analysis/parse.py $RESULTS && python3 analysis/plots.py"
