@@ -129,6 +129,39 @@ curl http://localhost:8083/api/ping
 
 Усі команди з README виконуйте в терміналі Ubuntu (WSL) з теки проєкту.
 
+## Вимірювання (k6)
+
+```bash
+# Швидкий прогін (~40 хв): 4 режими × 6 сценаріїв × VU 10/100/300, по 1 повтору
+QUICK=1 ./bench/run.sh
+
+# Повний прогін (кілька годин, оцінка часу виводиться на старті)
+./bench/run.sh
+
+# Вибірково
+MODES="fpm swoole" SCENARIOS="ping database" VUS_LIST="10 100" REPEATS=1 DURATION=30s ./bench/run.sh
+
+# Тривалий тест пам'яті (30 хв на режим)
+SOAK=1 ./bench/run.sh
+```
+
+`run.sh` сам піднімає БД, накочує міграції, видає токени (`bench:tokens`), прогріває кеш, по черзі запускає
+кожен режим (інші зупинені), робить прогрів і для кожного прогону зберігає підсумок k6 (`*.json`) і CPU/RAM
+контейнера щосекунди (`*.stats.csv`) у `bench/results/<дата>/`. k6 працює в контейнері в тій самій мережі
+compose і звертається до застосунку напряму (`http://swoole:8000`).
+
+Сценарії k6 лежать у `bench/k6/`: `ping`, `auth`, `database`, `cache`, `compute`, `mixed`, а також `arrival`
+(постійна частота запитів для порівняння затримок) і `soak`. Параметри стенду і калібрування: `bench/config.md`.
+
+Окремий сценарій вручну:
+
+```bash
+docker compose --profile swoole up -d
+docker compose run --rm -T app php artisan bench:tokens > bench/results/.tokens.json
+docker compose --profile bench run --rm -T -e TARGET=http://swoole:8000 -e TOKENS=/results/.tokens.json \
+  -e VUS=50 -e DURATION=30s k6 run database.js
+```
+
 ## Ресурси контейнерів
 
 | Контейнер | CPU | RAM | Змінні |

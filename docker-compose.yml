@@ -139,5 +139,17 @@ services:
     ports:
       - "8084:8000"
 
+  # Генератор навантаження. Запускається з bench/run.sh, звертається до застосунку
+  # всередині мережі compose (http://fpm:8000 тощо), щоб не міряти накладні витрати проброса портів.
+  k6:
+    image: grafana/k6:1.4.0
+    user: "0:0"
+    profiles: ["bench"]
+    working_dir: /scripts
+    volumes:
+      - ./bench/k6:/scripts:ro
+      - ./bench/results:/results
+    cpus: ${K6_CPUS:-2.0}
+
 volumes:
   pgdata:
