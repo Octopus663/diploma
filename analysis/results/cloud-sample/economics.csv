@@ -1,0 +1,13 @@
+target_rps,mode,stable_rps,instances,provider,monthly
+1000,roadrunner,60.4,24,DigitalOcean Basic Droplet 1 vCPU / 512 MB,96.0
+1000,roadrunner,60.4,24,AWS EC2 t4g.nano (2 vCPU burst / 0.5 GB),73.68
+1000,roadrunner,60.4,24,Hetzner Cloud CX22 (2 vCPU / 4 GB),108.0
+1000,swoole,64.6,23,DigitalOcean Basic Droplet 1 vCPU / 512 MB,92.0
+1000,swoole,64.6,23,AWS EC2 t4g.nano (2 vCPU burst / 0.5 GB),70.61
+1000,swoole,64.6,23,Hetzner Cloud CX22 (2 vCPU / 4 GB),103.5
+5000,roadrunner,60.4,119,DigitalOcean Basic Droplet 1 vCPU / 512 MB,476.0
+5000,roadrunner,60.4,119,AWS EC2 t4g.nano (2 vCPU burst / 0.5 GB),365.33
+5000,roadrunner,60.4,119,Hetzner Cloud CX22 (2 vCPU / 4 GB),535.5
+5000,swoole,64.6,111,DigitalOcean Basic Droplet 1 vCPU / 512 MB,444.0
+5000,swoole,64.6,111,AWS EC2 t4g.nano (2 vCPU burst / 0.5 GB),340.77
+5000,swoole,64.6,111,Hetzner Cloud CX22 (2 vCPU / 4 GB),499.5

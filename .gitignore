@@ -1,0 +1,11 @@
+.env
+docker/certs/*
+!docker/certs/.gitkeep
+bench/results/*
+!bench/results/.gitkeep
+.idea/
+.vscode/
+analysis/**/__pycache__/
+analysis/results/test-*/
+analysis/figures/test-*/
+analysis/figures/cloud-sample/

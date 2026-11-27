@@ -1,0 +1,206 @@
+# Стенд для порівняння PHP-FPM, RoadRunner, Swoole і FrankenPHP.
+# Код застосунку однаковий, відрізняється лише SERVER_MODE (entrypoint).
+#
+#   docker compose --profile fpm up -d --build          -> http://localhost:8081
+#   docker compose --profile roadrunner up -d --build   -> http://localhost:8082
+#   docker compose --profile swoole up -d --build       -> http://localhost:8083
+#   docker compose --profile frankenphp up -d --build   -> http://localhost:8084
+#
+# Під час вимірювань запускайте лише ОДИН режим застосунку.
+
+name: diploma
+
+x-app-env: &app-env
+  APP_NAME: "Diploma"
+  APP_ENV: production
+  APP_DEBUG: "false"
+  # Ключ лише для локального стенду. Для будь-якого публічного розгортання задайте свій APP_KEY у .env.
+  APP_KEY: ${APP_KEY:-base64:ZGlwbG9tYS1iZW5jaC1rZXktMzItYnl0ZXMtbG9uZyE=}
+  APP_URL: http://localhost
+  APP_LOCALE: uk
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: warning
+  DB_CONNECTION: pgsql
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_DATABASE: ${DB_DATABASE:-diploma}
+  DB_USERNAME: ${DB_USERNAME:-diploma}
+  DB_PASSWORD: ${DB_PASSWORD:-diploma}
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: sync
+  OCTANE_WORKERS: ${OCTANE_WORKERS:-2}
+  OCTANE_MAX_REQUESTS: ${OCTANE_MAX_REQUESTS:-500}
+  # Етап 6: демонстрація витоків і службовий маршрут пам'яті (лише для експериментів).
+  BENCH_LEAK_DEMO: ${BENCH_LEAK_DEMO:-false}
+  BENCH_DEBUG: ${BENCH_DEBUG:-false}
+
+# Спільне для всіх контейнерів застосунку.
+# Ліміти ресурсів (ТЗ: 1 vCPU, 512 MB) однакові для всіх режимів.
+x-app: &app
+  image: diploma-app:latest
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+    target: prod
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+  cpus: ${APP_CPUS:-1.0}
+  mem_limit: ${APP_MEM:-512m}
+  memswap_limit: ${APP_MEM:-512m}
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-diploma}
+      POSTGRES_USER: ${DB_USERNAME:-diploma}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-diploma}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    cpus: ${DB_CPUS:-1.0}
+    mem_limit: ${DB_MEM:-1g}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    cpus: ${REDIS_CPUS:-0.5}
+    mem_limit: ${REDIS_MEM:-256m}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Службовий контейнер для команд: міграції, сидер, тести.
+  #   docker compose run --rm app php artisan migrate --seed
+  app:
+    <<: *app
+    image: diploma-app:dev
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: dev
+    profiles: ["tools"]
+    restart: "no"
+    environment:
+      <<: *app-env
+      SERVER_MODE: cli
+      APP_CACHE: "false"
+
+  fpm:
+    <<: *app
+    profiles: ["fpm"]
+    environment:
+      <<: *app-env
+      SERVER_MODE: fpm
+    ports:
+      - "8081:8000"
+
+  roadrunner:
+    <<: *app
+    profiles: ["roadrunner"]
+    environment:
+      <<: *app-env
+      SERVER_MODE: roadrunner
+    ports:
+      - "8082:8000"
+
+  swoole:
+    <<: *app
+    profiles: ["swoole"]
+    environment:
+      <<: *app-env
+      SERVER_MODE: swoole
+    ports:
+      - "8083:8000"
+
+  frankenphp:
+    <<: *app
+    image: diploma-app-frankenphp:latest
+    build:
+      context: .
+      dockerfile: docker/frankenphp/Dockerfile
+    profiles: ["frankenphp"]
+    environment:
+      <<: *app-env
+      SERVER_MODE: frankenphp
+    ports:
+      - "8084:8000"
+
+  # Генератор навантаження. Запускається з bench/run.sh, звертається до застосунку
+  # всередині мережі compose (http://fpm:8000 тощо), щоб не міряти накладні витрати проброса портів.
+  k6:
+    image: grafana/k6:1.4.0
+    user: "0:0"
+    profiles: ["bench"]
+    working_dir: /scripts
+    volumes:
+      - ./bench/k6:/scripts:ro
+      - ./bench/results:/results
+    cpus: ${K6_CPUS:-2.0}
+
+  # ---- Моніторинг (профіль monitoring) ----
+  #   docker compose --profile monitoring up -d
+  #   Grafana: http://localhost:3000 (anonymous, дашборд «Diploma: стенд Octane»)
+  #   Prometheus: http://localhost:9090
+  # Експортер docker stats -> Prometheus (monitoring/exporter/exporter.py).
+  stats-exporter:
+    image: python:3.13-alpine
+    profiles: ["monitoring"]
+    command: ["python", "-u", "/app/exporter.py"]
+    environment:
+      COMPOSE_PROJECT: diploma
+    volumes:
+      - ./monitoring/exporter/exporter.py:/app/exporter.py:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    cpus: 0.25
+    mem_limit: 128m
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: ["monitoring"]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports:
+      - "9090:9090"
+    cpus: 0.5
+    mem_limit: 512m
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    profiles: ["monitoring"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/stand.json
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    cpus: 0.5
+    mem_limit: 256m
+
+volumes:
+  pgdata:
+  promdata:

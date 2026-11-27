@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: diploma
+    folder: Diploma
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards
